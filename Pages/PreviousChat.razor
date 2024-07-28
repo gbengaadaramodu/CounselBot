@@ -1,0 +1,313 @@
+﻿@page "/previouschat"
+@page "/continuechat/{ChatId:int}"
+
+@inject NavigationManager _navigationManager
+@inject IChatMessage _chat
+@inject IJSRuntime _jsRuntime;
+@using System.Text.Json;
+@using RestSharp;
+
+<div class="tyn-main" id="tynMain">
+    <ul class="tyn-list-inline d-md-none translate-middle-x position-absolute start-50 z-1">
+        <li>
+            <NavLink class="btn btn-icon btn-pill btn-white js-toggle-main" href="/">
+                <!-- x-lg -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                    <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
+                </svg>
+            </NavLink>
+        </li>
+    </ul>
+    <br /><br />
+    <div class="loader" style="display:@status"></div>
+    <div class="tyn-chat-body my-4 px-4 js-scroll-to-end" id="tynBotBody">
+        <div class="container px-0">
+            <div class="tyn-qa tyn-qa-bubbly" id="tynBotReply">
+
+            </div><!-- .tyn-qa -->
+        </div>
+    </div><!-- .tyn-chat-body -->
+
+
+
+    <div class="tyn-chat-form border-0 px-4">
+        <div class="container px-0">
+            <div class="ps-3 pe-4 py-3 bg-white mb-4 rounded-3">
+                <div class="tyn-chat-form-enter">
+                    <div class="tyn-chat-form-input" @bind="textsearch" id="tynBotInput0" placeholder="text" contenteditable></div>
+                    @*  <input @bind="textsearch" class="tyn-chat-form-input" id="tynBotInput0" placeholder="text" /> *@
+                    <ul class="tyn-list-inline me-n2 my-1">
+                        <li>
+                            <button class="btn btn-icon btn-white btn-md btn-pill" @onclick="@(()=>Search())" id="tynBotSend0">
+                                <!-- send-fill -->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send-fill" viewBox="0 0 16 16">
+                                    <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z" />
+                                </svg>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+    </div><!-- .tyn-chat-form -->
+
+</div><!-- .tyn-chat-content -->
+@code {
+    [Parameter]
+    public int ChatId { get; set; }
+
+    private Chat chat = new Chat();
+    private List<Chat> chats = new List<Chat>();
+    private string textsearch;
+    private string uniqueId;
+    private string title;
+    private List<CurrentChat> currentChats = new List<CurrentChat>();
+    private string AIModeldata = "";
+    private string status = "none";
+
+    protected async override void OnInitialized()
+    {
+        // string currentUrl = _navigationManager.Uri;
+
+        //chats = await _chat.GetAllChats();
+
+        status = "block";
+
+        base.OnInitialized();
+        var chatId = ChatId;
+        if (chatId > 0)
+        {
+            chat = await _chat.GetChatById(ChatId);
+            if (chat != null)
+            {
+                currentChats = new List<CurrentChat>();
+                uniqueId = chat.UniqueId;
+                title = chat.Title;
+                currentChats = JsonSerializer.Deserialize<List<CurrentChat>>(chat.Message);
+
+                //populate the box div with previous chat.
+                if(currentChats.Count > 0)
+                {
+                    foreach(var currentChat in currentChats)
+                    {
+                        if(currentChat.IsRequest == true)
+                        {
+                            await _jsRuntime.InvokeAsync<string>("requestchat", currentChat.Message);
+                        }
+                        else
+                        {
+                            await _jsRuntime.InvokeAsync<string>("aichat", currentChat.Message); //chat response
+                        }
+                    }
+
+                    AIModeldata = currentChats.OrderByDescending(x => x.ChatId).Select(x=>x.Message).FirstOrDefault();
+                }
+
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            //call generative ai here
+            var aicontent = new AiModel();
+            var contents = new List<Content>();
+            var parts = new List<Part>();
+            var part = new Part
+                {
+                    text = @"Only response in advising user on financial planning, budgeting or related only. Encourage the user to do their due diligent before making financial decision. ",
+                };
+            parts.Add(part);
+            var content = new Content
+                {
+                    parts = parts,
+                    role = "user"
+                };
+            contents.Add(content);
+            // //model
+            // part = new Part
+            //     {
+            //         text = @"Hi there! I'm Adara Bot, your friendly financial planning assistant. To help you best, could you tell me your name and email address? 
+            //                     I'll need this information to personalize your experience and keep track of our conversation.
+            //                 Once you've shared your details, I'll be happy to assist you with any financial questions including budgeting and related concerns you might have.
+            //                 Just let me know what's on your mind! 😊Remember: I'm here to provide general guidance, but it's always best to consult with a qualified financial advisor for personalized advice. ",
+            //     };
+            // parts.Add(part);
+            // content = new Content
+            //     {
+            //         parts = parts,
+            //         role = "model"
+            //     };
+            // contents.Add(content);
+
+            aicontent.contents = contents;
+
+            var text = JsonSerializer.Serialize(aicontent);
+            var aiResponse = await AIBot(text);
+            if (!string.IsNullOrEmpty(aiResponse))
+            {
+                var AIresp = JsonSerializer.Deserialize<AiResponse>(aiResponse);
+                AIModeldata = AIresp != null && AIresp.candidates[0].content != null ? AIresp.candidates[0].content.parts[0].text : "Your chat is not valid for this custom generative AI ";
+
+            }
+
+            status = "none";
+
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task Search()
+    {
+        var chatRequest = await _jsRuntime.InvokeAsync<string>("mychat");
+        if (string.IsNullOrEmpty(chatRequest))
+            await Application.Current.MainPage.DisplayAlert("Error", "Enter a valid request to search", "OK");
+        else
+        {
+
+            status = "block";
+            StateHasChanged();
+            var currentChat = new CurrentChat
+                {
+                    ChatId = currentChats.Count + 1,
+                    IsRequest = true,
+                    Message = chatRequest
+                };
+
+            currentChats.Add(currentChat);
+
+            if (currentChats.Count == 1 && string.IsNullOrEmpty(uniqueId))
+            {
+                uniqueId = Guid.NewGuid().ToString();
+            }
+
+            //call generative ai here
+            var aicontent = new AiModel();
+            var contents = new List<Content>();
+            var parts = new List<Part>();
+
+            //model request
+            var part = new Part
+                {
+                    text = $"{AIModeldata}  and answer all questions related to personal financial only except if it is a salutation.",
+                };
+            parts.Add(part);
+
+            var content = new Content
+                {
+                    parts = parts,
+                    role = "model"
+                };
+            contents.Add(content);
+            //user request
+            part = new Part
+                {
+                    text = chatRequest,
+                };
+            parts.Add(part);
+            content = new Content
+                {
+                    parts = parts,
+                    role = "user"
+                };
+            contents.Add(content);
+
+            aicontent.contents = contents;
+
+            var text = JsonSerializer.Serialize(aicontent);
+
+            var aiResponse = await AIBot(text);
+            if (!string.IsNullOrEmpty(aiResponse))
+            {
+
+                var AIresp = JsonSerializer.Deserialize<AiResponse>(aiResponse);
+                // var responseData = AIresp != null && AIresp.candidates[0].content != null ? AIresp.candidates[0].content.parts[0].text : "Your chat is not valid for this custom generative AI ";
+                string responseData = string.Empty;
+                if (AIresp != null && AIresp.candidates[0].content != null)
+                {
+                    responseData = AIresp.candidates[0].content.parts[0].text;
+                    AIModeldata = responseData;
+                }
+                else
+                {
+                    responseData = "Your chat is not valid for this custom generative AI ";
+                }
+
+                responseData = responseData.Replace("**", "<br>");
+
+                var chatResponse = await _jsRuntime.InvokeAsync<string>("aichat", responseData);
+
+                status = "none";
+
+                currentChat = new CurrentChat
+                    {
+                        ChatId = currentChats.Count + 1,
+                        IsRequest = false,
+                        Message = chatResponse
+                    };
+
+                currentChats.Add(currentChat);
+            }
+
+            var message = JsonSerializer.Serialize(currentChats);
+
+            if (chat.Id == 0)
+            {
+                var count = chatRequest.Length < 25 ? chatRequest.Length : 25;
+                title = $"{chatRequest.Substring(0, count)}...";
+
+                chat = new Chat
+                    {
+                        Title = title,
+                        Message = message,
+                        UniqueId = uniqueId,
+                        CreateOn = DateTime.Now,
+                        ModifiedOn = DateTime.Now,
+                    };
+
+                var response = await _chat.SaveChat(chat);
+            }
+            else
+            {
+                chat.Message = message;
+                chat.ModifiedOn = DateTime.Now;
+
+                var response = await _chat.UpdateChat(chat);
+            }
+
+        }
+
+
+        StateHasChanged();
+        //chats = await _chat.GetAllChats();
+    }
+
+
+    private async Task<string> AIBot(string body)
+    {
+        NetworkAccess accessType = Connectivity.Current.NetworkAccess;
+
+        if (accessType == NetworkAccess.Internet)
+        {
+            // Connection to internet is available
+            var options = new RestClientOptions("https://generativelanguage.googleapis.com");
+
+            var client = new RestClient(options);
+            var request = new RestRequest("/v1beta/models/gemini-1.5-flash:generateContent", Method.Post);
+            request.AddHeader("x-goog-api-key", "AIzaSyBCNi5FeiLoVUj_gsekHFST8LROTfLZ-O4");
+            request.AddHeader("Content-Type", "application/json");
+
+            request.AddStringBody(body, DataFormat.Json);
+            RestResponse response = await client.ExecuteAsync(request);
+
+            return response.Content;
+        }
+        else
+        {
+           await Application.Current.MainPage.DisplayAlert("Error", "Your device is currently offline", "OK");
+
+            return null;
+        }
+    }
+}

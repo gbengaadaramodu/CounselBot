@@ -1,0 +1,146 @@
+﻿@page "/"
+@inject NavigationManager _navigationManager
+@inject IChatMessage _chat
+
+
+<div class="tyn-aside tyn-aside-base">
+    <div class="tyn-aside-head">
+        <div class="tyn-aside-head-text">
+            <h3 class="tyn-aside-title tyn-title">Previous Chat</h3>
+            <span class="tyn-subtext">@chats.Count Conversation(s) </span>
+        </div>
+        <div class="tyn-aside-head-tools">
+            <ul class="tyn-list-inline gap gap-3">
+                <li>
+                    <NavLink class="btn btn-icon btn-light btn-md btn-pill" href="/previouschat">
+                        <!-- plus-lg -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
+                        </svg>
+                    </NavLink>
+                </li>
+            </ul>
+        </div>
+    </div><!-- .tyn-aside-head -->
+
+    <div class="tyn-aside-body" data-simplebar>
+        <ul class="tyn-aside-list">
+            @if (chats.Count > 0)
+            {
+                foreach (var chat in chats)
+                {
+                    <li class="tyn-aside-item tyn-aside-item-bubbly  js-toggle-main active">
+                        <div class="tyn-media-group">
+                            <div class="tyn-media tyn-size-sm">
+                                <!-- chat-quote-fill -->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-quote-fill" viewBox="0 0 16 16">
+                                    <path d="M16 8c0 3.866-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.584.296-1.925.864-4.181 1.234-.2.032-.352-.176-.273-.362.354-.836.674-1.95.77-2.966C.744 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7M7.194 6.766a1.7 1.7 0 0 0-.227-.272 1.5 1.5 0 0 0-.469-.324l-.008-.004A1.8 1.8 0 0 0 5.734 6C4.776 6 4 6.746 4 7.667c0 .92.776 1.666 1.734 1.666.343 0 .662-.095.931-.26-.137.389-.39.804-.81 1.22a.405.405 0 0 0 .011.59c.173.16.447.155.614-.01 1.334-1.329 1.37-2.758.941-3.706a2.5 2.5 0 0 0-.227-.4zM11 9.073c-.136.389-.39.804-.81 1.22a.405.405 0 0 0 .012.59c.172.16.446.155.613-.01 1.334-1.329 1.37-2.758.942-3.706a2.5 2.5 0 0 0-.228-.4 1.7 1.7 0 0 0-.227-.273 1.5 1.5 0 0 0-.469-.324l-.008-.004A1.8 1.8 0 0 0 10.07 6c-.957 0-1.734.746-1.734 1.667 0 .92.777 1.666 1.734 1.666.343 0 .662-.095.931-.26z" />
+                                </svg>
+                            </div>
+                            <div class="tyn-media-col" @onclick="@(()=>LoadPrevious(chat.Id))">
+                                <div class="content">@chat.Title</div>
+                            </div>
+                            <div class="tyn-media-option">
+                                <ul class="tyn-media-option-list">
+                                    <li>
+                                        <button class="btn  btn-md btn-pill  btn-dark" @onclick="@(()=>DeleteChat(chat))">
+                                            <!-- trash -->
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                                                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                            </svg>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                }
+            }
+        </ul>
+    </div><!-- .tyn-aside-body -->
+    <div class="tyn-aside-foot">
+        <div class="w-100">
+            <ul class="row gx-3">
+                <li class="col-6">
+                    <button class="btn btn-light tyn-size-lg w-100 flex-column py-2 pt-3" @onclick="@(()=>Consultant())">
+                        <!-- person-up -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-up" viewBox="0 0 16 16">
+                            <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.354-5.854 1.5 1.5a.5.5 0 0 1-.708.708L13 11.707V14.5a.5.5 0 0 1-1 0v-2.793l-.646.647a.5.5 0 0 1-.708-.708l1.5-1.5a.5.5 0 0 1 .708 0M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4" />
+                            <path d="M8.256 14a4.5 4.5 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10q.39 0 .74.025c.226-.341.496-.65.804-.918Q8.844 9.002 8 9c-5 0-6 3-6 4s1 1 1 1z" />
+                        </svg>
+                        <span class="small text-nowrap mt-n1">Chat Consultant</span>
+                    </button>
+                </li>
+                <li class="col-6">
+                    <button class="btn btn-light tyn-size-lg w-100 flex-column py-2 pt-3" @onclick="@(()=>DeleteAllChat())">
+                        <!-- trash -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                        </svg>
+                        <span class="small text-nowrap mt-n1">Clear Chats</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div><!-- .tyn-aside-head -->
+</div><!-- .tyn-aside -->
+@code {
+
+    private Chat cha = new Chat();
+    private List<Chat> chats = new List<Chat>();
+    private bool collapseNavMenu = false;
+
+    private string NavMenuCssClass => collapseNavMenu ? "menu-open" : string.Empty;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void LoadPrevious(int chatId)
+    {
+
+        //navigate to the page
+        _navigationManager.NavigateTo($"/continuechat/{chatId}");
+
+        // StateHasChanged();
+    }
+    private async Task DeleteChat(Chat chat)
+    {
+        int resp = await _chat.DeleteChat(chat);
+
+        OnInitialized();
+        StateHasChanged();
+
+    }
+
+    protected async override void OnInitialized()
+    {
+        // string currentUrl = _navigationManager.Uri;
+
+        chats = await _chat.GetAllChats();
+
+        StateHasChanged();
+    }
+
+
+
+    private async Task DeleteAllChat()
+    {
+        int resp = await _chat.DeleteAllChat();
+        if (resp > 0)
+        {
+            OnInitialized();
+            StateHasChanged();
+        }
+
+    }
+
+    async Task Consultant()
+    {
+        await Application.Current.MainPage.DisplayAlert("Info", "This service is coming soon...", "OK");
+
+    }
+}

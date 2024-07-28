@@ -1,0 +1,41 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager _navigationManager
+@inject IChatMessage _chat
+
+<div class="page">
+    <main>
+        <NavMenu />
+
+        <div class="tyn-content tyn-content-full-height tyn-chatbot tyn-chatbot-page has-aside-base">
+
+            @Body
+
+        </div>
+    </main>
+</div>
+
+@* 
+@code{
+
+    private List<Chat> chats = new List<Chat>();
+
+
+    private async Task DeleteAllChat()
+    {
+        int resp = await _chat.DeleteAllChat();
+        if (resp > 0)
+        {
+            OnInitialized();
+            StateHasChanged();
+        }
+
+    }
+
+    protected async override void OnInitialized()
+    {
+        chats = await _chat.GetAllChats();
+
+        StateHasChanged();
+    }
+
+} *@
